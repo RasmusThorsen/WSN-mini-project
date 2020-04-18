@@ -4,7 +4,12 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - elk-setup/logstash/*
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -15,7 +20,13 @@ steps:
     sshEndpoint: 'ELK-server'
     sourceFolder: '$(System.DefaultWorkingDirectory)/elk-setup/logstash'
     contents: '**/*.conf'
-    targetFolder: '/root/logstashconf/logstashinput.conf'
+    targetFolder: '/root/logstashconf/'
+    readyTimeout: '20000'
+- task: SSH@0
+  inputs:
+    sshEndpoint: 'ELK-server'
+    runOptions: 'inline'
+    inline: 'mv -f /root/logstashconf/Logstash-config.conf /root/logstashconf/logstashinput.conf'
     readyTimeout: '20000'
 - task: SSH@0
   inputs:
