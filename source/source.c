@@ -59,8 +59,6 @@ PROCESS_THREAD(source, ev, data)
     while(1) {
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
         
-
-
         float temp_raw = sht11_sensor.value(SHT11_SENSOR_TEMP);
         if(temp_raw != -1) {
             temp = ((0.01*temp_raw) - 39.60);
