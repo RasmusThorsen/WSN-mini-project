@@ -8,6 +8,7 @@
 
 #define CLIENT_PORT 1111
 #define SERVER_PORT 2222
+#define ROOT_PORT 3333
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -37,13 +38,12 @@ AUTOSTART_PROCESSES(&root);
 PROCESS_THREAD(root, ev, data)
 {
     PROCESS_BEGIN();
-
     /* Initialize DAG root */
     NETSTACK_ROUTING.root_start();
 
     /* Initialize UDP connection */
-    simple_udp_register(&udp_conn, SERVER_PORT, NULL,
-                        CLIENT_PORT, udp_rx_callback);
+    simple_udp_register(&udp_conn, ROOT_PORT, NULL, SERVER_PORT, udp_rx_callback);
+    LOG_INFO("Root: Done initialzation \n");
 
     PROCESS_END();
 }
