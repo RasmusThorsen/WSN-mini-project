@@ -6,12 +6,10 @@
 #include "net/routing/routing.h"
 #include "net/netstack.h"
 
-#define CLIENT_PORT 1111
-#define SERVER_PORT 2222
-#define ROOT_PORT 3333
+#include "../shared/defs.h"
 
 #include "sys/log.h"
-#define LOG_MODULE "App"
+#define LOG_MODULE "Root"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 static struct simple_udp_connection udp_conn;
@@ -31,8 +29,6 @@ static void udp_rx_callback(
     LOG_INFO_("\n");
 }
 
-// Remember #include "contiki.h"
-// Global static functions can be declared outside scope of process
 PROCESS(root, "root");
 AUTOSTART_PROCESSES(&root);
 PROCESS_THREAD(root, ev, data)
@@ -42,7 +38,7 @@ PROCESS_THREAD(root, ev, data)
     NETSTACK_ROUTING.root_start();
 
     /* Initialize UDP connection */
-    simple_udp_register(&udp_conn, ROOT_PORT, NULL, SERVER_PORT, udp_rx_callback);
+    simple_udp_register(&udp_conn, ROOT_PORT, NULL, AGGR_PORT, udp_rx_callback);
     LOG_INFO("Root: Done initialzation \n");
 
     PROCESS_END();

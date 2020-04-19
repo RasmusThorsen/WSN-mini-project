@@ -1,96 +1,70 @@
 #include "contiki.h"
-#include "dev/sht11/sht11-sensor.h"
-#include <math.h>
-#include <stdio.h>
-#include <inttypes.h>
 #include "net/ipv6/simple-udp.h"
 #include "net/routing/routing.h"
 #include "net/netstack.h"
-#include "sys/energest.h"
-#include "net/nullnet/nullnet.h"
-#include "net/ipv6/uip.h"
 
-#define CLIENT_PORT 1111
-#define SERVER_PORT 2222
+#include "../shared/defs.h"
 
 #include "sys/log.h"
-#define LOG_MODULE "App"
+#define LOG_MODULE "Source"
 #define LOG_LEVEL LOG_LEVEL_INFO
+
+static struct simple_udp_connection sender_connection;
 
 PROCESS(source, "source");
 AUTOSTART_PROCESSES(&source);
-
-// static struct simple_udp_connection udp_conn; 
-
-// static unsigned long
-// to_seconds(uint64_t time)
-// {
-//   return (unsigned long)(time / ENERGEST_SECOND);
-// }
-
-// void
-// energest_report(void) 
-// {
-//     energest_flush();
-//     printf("\nEnergest:\n");
-//     printf(" CPU          %lu LPM      %lu DEEP LPM %lu  Total time %lu\n",
-//         to_seconds(energest_type_time(ENERGEST_TYPE_CPU)),
-//         to_seconds(energest_type_time(ENERGEST_TYPE_LPM)),
-//         to_seconds(energest_type_time(ENERGEST_TYPE_DEEP_LPM)),
-//         to_seconds(ENERGEST_GET_TOTAL_TIME()));
-//     printf(" Radio LISTEN %lu TRANSMIT %lu OFF      %lu \n",
-//         to_seconds(energest_type_time(ENERGEST_TYPE_LISTEN)),
-//         to_seconds(energest_type_time(ENERGEST_TYPE_TRANSMIT)),
-//         to_seconds(ENERGEST_GET_TOTAL_TIME() - energest_type_time(ENERGEST_TYPE_TRANSMIT) - energest_type_time(ENERGEST_TYPE_LISTEN)));
-// }
+/*---------------------------------------------------------------------------*/
+// Called when receiving Aggregator IP
 static struct simple_udp_connection broadcast_connection;
+static uip_ipaddr_t aggregator_ip;
+static bool ipFlag = false;
+static void receive_aggregator_ip(struct simple_udp_connection *c,
+         const uip_ipaddr_t *sender_addr,
+         uint16_t sender_port,
+         const uip_ipaddr_t *receiver_addr,
+         uint16_t receiver_port,
+         const uint8_t *data,
+         uint16_t datalen)
+{
+    aggregator_ip = *sender_addr;
+    ipFlag = true;
+}
+/*---------------------------------------------------------------------------*/
+
 PROCESS_THREAD(source, ev, data)
 {
-    // static uip_ipaddr_t dest_ipaddr; 
-    // static float temp = 0;
-    // static char buffer[32];
-    static struct etimer timer;
+    static struct etimer broadcast_timer;
+    static struct etimer send_timer;
     uip_ipaddr_t addr;
     
+    static int counter = 0;
+    static char buf[32];
+
     PROCESS_BEGIN();
 
-    simple_udp_register(&broadcast_connection, CLIENT_PORT, NULL, CLIENT_PORT, NULL);
+    simple_udp_register(&broadcast_connection, SOURCE_PORT, NULL, AGGR_BROADCAST_PORT, receive_aggregator_ip);
+    etimer_set(&broadcast_timer, CLOCK_SECOND * 2); 
 
-    etimer_set(&timer, CLOCK_SECOND * 2); 
-    while(1) {
-        LOG_INFO("Source broadcasting.. \n");
+    // Multicast until IP of some aggregator is received
+    while(!ipFlag) {
         uip_create_linklocal_allnodes_mcast(&addr);
-        simple_udp_sendto(&broadcast_connection, "Test", 4, &addr);
+        simple_udp_sendto(&broadcast_connection, "0", 2, &addr);
 
-
-        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-        etimer_reset(&timer);
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&broadcast_timer));
+        etimer_reset(&broadcast_timer);
     }
-    // SENSORS_ACTIVATE(sht11_sensor); 
 
-    // simple_udp_register(&udp_conn, CLIENT_PORT, NULL, SERVER_PORT, NULL); 
+    simple_udp_register(&sender_connection, SOURCE_PORT, NULL, AGGR_DATA_PORT, NULL);
+    etimer_set(&send_timer, CLOCK_SECOND * 2); 
 
-    // while(1) {
-    //     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-        
-    //     float temp_raw = sht11_sensor.value(SHT11_SENSOR_TEMP);
-    //     if(temp_raw != -1) {
-    //         temp = ((0.01*temp_raw) - 39.60);
-    //     } 
+    while(counter < 20) {
+        counter++;
+        snprintf(buf, sizeof(buf), "%d,", counter);
+        simple_udp_sendto(&sender_connection, buf, strlen(buf), &aggregator_ip);
 
-    //     if(NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr)) {
-    //         snprintf(buffer, sizeof(buffer), "temp: %d", (int)temp);
-    //         LOG_INFO("Sender data: %d \n", (int)temp);
-    //         simple_udp_sendto(&udp_conn, buffer, strlen(buffer), &dest_ipaddr);
-    //     } else {
-    //         LOG_INFO("Not reachable yet \n");
-    //     }
-
-    //     etimer_reset(&timer);
-    // } 
-
-    // // Deactive sensors 
-    SENSORS_DEACTIVATE(sht11_sensor);
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
+        etimer_reset(&send_timer);
+    }
 
     PROCESS_END();
 }
