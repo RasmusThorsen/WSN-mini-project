@@ -10,6 +10,7 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 static struct simple_udp_connection sender_connection;
+static struct simple_udp_connection source_event_connection;
 
 PROCESS(source, "source");
 AUTOSTART_PROCESSES(&source);
@@ -54,11 +55,18 @@ PROCESS_THREAD(source, ev, data)
         etimer_reset(&broadcast_timer);
     }
 
-    simple_udp_register(&sender_connection, SOURCE_PORT, NULL, AGGR_DATA_PORT, NULL);
+    simple_udp_register(&sender_connection, SOURCE_PORT, NULL, AGGR_DATA_PORT, NULL); // TODO wait for ack
+    simple_udp_register(&source_event_connection, SOURCE_EVENT_PORT, NULL, AGGR_EVENT_PORT, NULL);
     etimer_set(&send_timer, CLOCK_SECOND * 2); 
 
     while(counter < 20) {
         counter++;
+        
+        if(counter > TEMP_TRESHOLD) {
+            snprintf(buf, sizeof(buf), "%d,", counter);
+            simple_udp_sendto(&source_event_connection, buf, strlen(buf), &aggregator_ip);
+        } 
+
         snprintf(buf, sizeof(buf), "%d,", counter);
         simple_udp_sendto(&sender_connection, buf, strlen(buf), &aggregator_ip);
 

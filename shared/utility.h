@@ -39,21 +39,19 @@ char* remove_colon(char* input)
     return output;
 }
 
-// void string_to_int_array(char *source_array, int *dest_array, unsigned int dest_len) {
-//     int i = 0;
-//     Get the first token from the string
-//     char *tok = strtok(source_array, ",");
-//     // Keep going until we run out of tokens
-//     while (tok) {
-//         // Don't overflow your target array
-//         if (i < dest_len) {
-//             // Convert to integer and store it
-//             // dest_array[i++] = atoi(tok);
-//         }
-//         // Get the next token from the string - note the use of NULL
-//         // instead of the string in this case - that tells it to carry
-//         // on from where it left off.
-//         tok = strtok(NULL, ",");
-//     }
-// }
+// stdlib atoi causes ram/rom overflow
+// https://www.geeksforgeeks.org/write-your-own-atoi/
+int simple_atoi(char* str) 
+{ 
+    int res = 0; // Initialize result 
+  
+    // Iterate through all characters of input string and 
+    // update result 
+    int i;
+    for (i = 0; str[i] != '\0'; ++i) 
+        res = res * 10 + str[i] - '0'; 
+  
+    // return result. 
+    return res; 
+} 
 
