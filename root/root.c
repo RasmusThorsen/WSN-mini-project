@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "net/routing/routing.h"
 #include "net/netstack.h"
+#include "rpl.h"
+#include "httpd-simple.h"
 
 #define CLIENT_PORT 1111
 #define SERVER_PORT 2222
@@ -32,8 +34,12 @@ static void udp_rx_callback(
 
 // Remember #include "contiki.h"
 // Global static functions can be declared outside scope of process
+
 PROCESS(root, "root");
-AUTOSTART_PROCESSES(&root);
+PROCESS(webserver, "WebServer");
+AUTOSTART_PROCESSES(&root, &webserver);
+
+
 PROCESS_THREAD(root, ev, data)
 {
     PROCESS_BEGIN();
@@ -46,4 +52,44 @@ PROCESS_THREAD(root, ev, data)
                         CLIENT_PORT, udp_rx_callback);
 
     PROCESS_END();
+}
+
+/*---------------------------------------------------------------------------*/
+//                              Webserver stuff                              //
+/*---------------------------------------------------------------------------*/
+static
+PT_THREAD(generate_routes(struct httpd_state *s))
+{
+  char buff[15];
+
+  PSOCK_BEGIN(&s->sout);
+
+  sprintf(buff,"25,26");
+  LOG_INFO("Sending data");
+
+  SEND_STRING(&s->sout, buff);
+
+  PSOCK_END(&s->sout);
+}
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(webserver, ev, data)
+{
+  PROCESS_BEGIN();
+
+  LOG_INFO("WebServer Started\n");
+
+  httpd_init();
+
+  while(1) {
+    PROCESS_WAIT_EVENT_UNTIL(ev == tcpip_event);
+    httpd_appcall(data);
+  }
+
+  PROCESS_END();
+}
+/*---------------------------------------------------------------------------*/
+httpd_simple_script_t
+httpd_simple_get_script(const char *name)
+{
+  return generate_routes;
 }
