@@ -12,7 +12,7 @@ struct Sensor {
 
 // Source https://www.uncg.edu/cmp/downloads/lwsndr.html - SingleHopLabelledReadings - singlehop-outdoor-moteid3-data.txt 
 // Data manipulated to be able to import in to Danish version of Excel (dot and comma replacement)
-// In Excel the following Formula where used to select the data OFFSET('OFFSET'!$A$2;(ROW()-1)*50;0)
+// In Excel the following Formula where used to select the data OFFSET('SHEET'!$A$2;(ROW()-1)*50;0)
 // This select roughly every 50 maesurement 
 static float temperature[] = {33.19, 32.41, 32.09, 32.47, 31.81, 32.04, 32.24, 31.95, 31.77, 31.22, 31.11, 30.95, 31.24, 31.03, 
                             30.61, 30.38, 30.13, 30.04, 29.98, 29.86, 29.25, 29.19, 28.93, 28.89, 28.79, 28.88, 28.87, 28.72, 
