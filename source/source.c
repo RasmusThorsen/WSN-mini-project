@@ -10,7 +10,7 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 static struct simple_udp_connection sender_connection;
-static struct simple_udp_connection source_event_connection;
+static struct simple_udp_connection event_connection;
 
 PROCESS(source, "source");
 AUTOSTART_PROCESSES(&source);
@@ -43,7 +43,7 @@ PROCESS_THREAD(source, ev, data)
 
     PROCESS_BEGIN();
 
-    simple_udp_register(&broadcast_connection, SOURCE_PORT, NULL, AGGR_BROADCAST_PORT, receive_aggregator_ip);
+    simple_udp_register(&broadcast_connection, SOURCE_BROADCAST_PORT, NULL, AGGR_BROADCAST_PORT, receive_aggregator_ip);
     etimer_set(&broadcast_timer, CLOCK_SECOND * 2); 
 
     // Multicast until IP of some aggregator is received
@@ -55,20 +55,25 @@ PROCESS_THREAD(source, ev, data)
         etimer_reset(&broadcast_timer);
     }
 
-    simple_udp_register(&sender_connection, SOURCE_PORT, NULL, AGGR_DATA_PORT, NULL); // TODO wait for ack
-    simple_udp_register(&source_event_connection, SOURCE_EVENT_PORT, NULL, AGGR_EVENT_PORT, NULL);
+    simple_udp_register(&sender_connection, SOURCE_DATA_PORT, NULL, AGGR_DATA_PORT, NULL); // TODO wait for ack
+    simple_udp_register(&event_connection, SOURCE_EVENT_PORT, NULL, AGGR_EVENT_PORT, NULL);
     etimer_set(&send_timer, CLOCK_SECOND * 2); 
 
-    while(counter < 20) {
+    while(counter < 10) {
         counter++;
         
+        snprintf(buf, sizeof(buf), "%d,", counter);
         if(counter > TEMP_TRESHOLD) {
-            snprintf(buf, sizeof(buf), "%d,", counter);
-            simple_udp_sendto(&source_event_connection, buf, strlen(buf), &aggregator_ip);
+            printf("Event outgoing: %s \n", buf);
+            simple_udp_sendto(&event_connection, buf, strlen(buf), &aggregator_ip);
         } 
 
-        snprintf(buf, sizeof(buf), "%d,", counter);
+        // snprintf(buf, sizeof(buf), "%d,", counter);
         simple_udp_sendto(&sender_connection, buf, strlen(buf), &aggregator_ip);
+
+        if(counter == 10) {
+            counter = 0;
+        }
 
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
         etimer_reset(&send_timer);

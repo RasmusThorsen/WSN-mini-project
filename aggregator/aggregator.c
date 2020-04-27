@@ -1,5 +1,5 @@
 #include <stdlib.h> // needed for strtok
-#include <stdio.h> // snprintf and printf
+#include <stdio.h>  // snprintf and printf
 
 #include "contiki.h"
 
@@ -10,6 +10,10 @@
 
 #include "os/storage/cfs/cfs.h"
 #include "os/lib/heapmem.h"
+
+#include "sys/log.h"
+#define LOG_MODULE "Aggregator"
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 #include "../shared/defs.h"
 #include "../shared/utility.h"
@@ -41,7 +45,7 @@ static void broadcast_receiver(struct simple_udp_connection *c,
     simple_udp_sendto(&broadcast_connection, data, datalen, sender_addr);
 }
 /*---------------------------------------------------------------------------*/
-static struct simple_udp_connection source_event_connection;
+static struct simple_udp_connection event_connection;
 static struct simple_udp_connection root_event_connection;
 static void event_receiver(struct simple_udp_connection *c,
                            const uip_ipaddr_t *sender_addr,
@@ -91,7 +95,7 @@ static void data_receiver(struct simple_udp_connection *c,
 
     if (!nameExists)
     {
-        snprintf(names[next_free_name], sizeof(temp_name), remove_colon(temp_name));
+        snprintf(names[next_free_name], sizeof(temp_name), "%s" ,remove_colon(temp_name));
         index_of_name = next_free_name;
         next_free_name++;
     }
@@ -122,21 +126,42 @@ PROCESS_THREAD(aggregator, ev, data)
     static int acc_temp = 0, n_temp = 0;
     static char *token;
     static char transmit_buffer[32];
+    static int err = 1; 
 
     PROCESS_BEGIN();
 
-    simple_udp_register(&broadcast_connection, AGGR_BROADCAST_PORT, NULL, SOURCE_PORT, broadcast_receiver);
-    simple_udp_register(&data_connection, AGGR_DATA_PORT, NULL, SOURCE_PORT, data_receiver);
-    simple_udp_register(&source_event_connection, AGGR_EVENT_PORT, NULL, SOURCE_EVENT_PORT, event_receiver);
-    simple_udp_register(&root_event_connection, AGGR_EVENT_PORT, NULL, ROOT_EVENT_PORT, NULL);
-    simple_udp_register(&root_connection, AGGR_PORT, NULL, ROOT_PORT, NULL);
+    err = simple_udp_register(&event_connection, AGGR_EVENT_PORT, NULL, SOURCE_EVENT_PORT, event_receiver);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish event connection \n");
+    } 
 
+    err = simple_udp_register(&broadcast_connection, AGGR_BROADCAST_PORT, NULL, SOURCE_BROADCAST_PORT, broadcast_receiver);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish broadcast connection \n");
+    }
+
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
+
+    err = simple_udp_register(&root_event_connection, AGGR_ROOTEVENT_PORT, NULL, ROOT_EVENT_PORT, NULL);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish root event connection \n");
+    }
+
+    err = simple_udp_register(&data_connection, AGGR_DATA_PORT, NULL, SOURCE_DATA_PORT, data_receiver);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish data connection \n");
+    }
+
+    err = simple_udp_register(&root_connection, AGGR_ROOTDATA_PORT, NULL, ROOT_DATA_PORT, NULL);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish root connection \n");
+    }
+    
+    
     etimer_set(&readFileTimer, CLOCK_SECOND * TIME_BETWEEN_AGGREGATION);
 
     while (1)
     {
-        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&readFileTimer));
-
         j = 0;
         for (i = 0; i < next_free_name; i++)
         {
@@ -179,9 +204,9 @@ PROCESS_THREAD(aggregator, ev, data)
 
         if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip))
         {
-            printf("transmit to root \n");
-            snprintf(transmit_buffer, sizeof(transmit_buffer), "%d", acc_temp / n_temp);
-            simple_udp_sendto(&root_connection, transmit_buffer, strlen(transmit_buffer), &root_ip);
+            snprintf(transmit_buffer, 32, "%d", acc_temp / n_temp);
+            printf("transmit to root. Data: %s \n", transmit_buffer);
+            simple_udp_sendto(&root_connection, transmit_buffer, 32, &root_ip);
         }
 
         // acc_temp = 0;
@@ -192,6 +217,8 @@ PROCESS_THREAD(aggregator, ev, data)
         //     cfs_remove(names[q]);
         // }
         // next_free_name = 0;
+
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&readFileTimer));
         etimer_reset(&readFileTimer);
     }
 

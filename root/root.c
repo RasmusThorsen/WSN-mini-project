@@ -54,8 +54,8 @@ PROCESS_THREAD(root, ev, data)
     NETSTACK_ROUTING.root_start();
 
     /* Initialize UDP connection */
-    simple_udp_register(&udp_conn, ROOT_PORT, NULL, AGGR_PORT, data_receiver);
-    simple_udp_register(&event_conn, ROOT_EVENT_PORT, NULL, AGGR_EVENT_PORT, event_receiver);
+    simple_udp_register(&udp_conn, ROOT_DATA_PORT, NULL, AGGR_ROOTDATA_PORT, data_receiver);
+    simple_udp_register(&event_conn, ROOT_EVENT_PORT, NULL, AGGR_ROOTEVENT_PORT, event_receiver);
     LOG_INFO("Root: Done initialzation \n");
 
     PROCESS_END();
