@@ -17,7 +17,7 @@ PROCESS(root, "root");
 AUTOSTART_PROCESSES(&root);
 /*---------------------------------------------------------------------------*/
 // Defined callback, that is setup in simple_udp_register
-static struct simple_udp_connection udp_conn;
+static struct simple_udp_connection aggr_connection;
 static void data_receiver(
     struct simple_udp_connection *c,
     const uip_ipaddr_t *sender_addr,
@@ -32,7 +32,8 @@ static void data_receiver(
     LOG_INFO_("\n");
 }
 /*---------------------------------------------------------------------------*/
-static struct simple_udp_connection event_conn;
+// Defined callback, that is setup in simple_udp_register
+static struct simple_udp_connection root_connection;
 static void event_receiver(
     struct simple_udp_connection *c,
     const uip_ipaddr_t *sender_addr,
@@ -54,8 +55,15 @@ PROCESS_THREAD(root, ev, data)
     NETSTACK_ROUTING.root_start();
 
     /* Initialize UDP connection */
-    simple_udp_register(&udp_conn, ROOT_DATA_PORT, NULL, AGGR_ROOTDATA_PORT, data_receiver);
-    simple_udp_register(&event_conn, ROOT_EVENT_PORT, NULL, AGGR_ROOTEVENT_PORT, event_receiver);
+    int err = simple_udp_register(&aggr_connection, ROOT_PORT, NULL, AGGR_PORT, data_receiver);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish data connection \n");
+    }
+
+    err = simple_udp_register(&root_connection, ROOT_PORT, NULL, SOURCE_PORT, event_receiver);
+    if(err == 0) {
+        LOG_ERR("ERROR: Could not etablish data connection \n");
+    }
     LOG_INFO("Root: Done initialzation \n");
 
     PROCESS_END();
