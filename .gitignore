@@ -30,6 +30,7 @@
 
 # Contiki
 *.sky
+*.cooja
 
 # Executables
 *.exe
