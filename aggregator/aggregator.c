@@ -1,5 +1,6 @@
 #include <stdlib.h> // needed for strtok
 #include <stdio.h>  // snprintf and printf
+#include <string.h> // strncmp
 
 #include "contiki.h"
 
@@ -18,7 +19,7 @@
 #include "../shared/defs.h"
 #include "../shared/utility.h"
 
-#define BUFFER_SIZE 50
+#define BUFFER_SIZE 200
 #define TIME_BETWEEN_AGGREGATION 10
 
 static uip_ipaddr_t root_ip;
@@ -31,41 +32,8 @@ static int next_free_name = 0;
 PROCESS(aggregator, "aggregator");
 AUTOSTART_PROCESSES(&aggregator);
 /*---------------------------------------------------------------------------*/
-// Handles broadcasting sources
-static struct simple_udp_connection broadcast_connection;
-static void broadcast_receiver(struct simple_udp_connection *c,
-                               const uip_ipaddr_t *sender_addr,
-                               uint16_t sender_port,
-                               const uip_ipaddr_t *receiver_addr,
-                               uint16_t receiver_port,
-                               const uint8_t *data,
-                               uint16_t datalen)
-{
-    // Ack broadcaster so it receives aggregator IP through callback
-    simple_udp_sendto(&broadcast_connection, data, datalen, sender_addr);
-}
-/*---------------------------------------------------------------------------*/
-static struct simple_udp_connection event_connection;
-static struct simple_udp_connection root_event_connection;
-static void event_receiver(struct simple_udp_connection *c,
-                           const uip_ipaddr_t *sender_addr,
-                           uint16_t sender_port,
-                           const uip_ipaddr_t *receiver_addr,
-                           uint16_t receiver_port,
-                           const uint8_t *data,
-                           uint16_t datalen)
-{
-    printf("Received event\n");
-    if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip))
-    {
-        char transmit_buffer[32];
-        snprintf(transmit_buffer, sizeof(transmit_buffer), "%s", (char *)data);
-        simple_udp_sendto(&root_event_connection, transmit_buffer, strlen(transmit_buffer), &root_ip);
-    }
-}
-/*---------------------------------------------------------------------------*/
 // Handles sources that sends data
-static struct simple_udp_connection data_connection;
+static struct simple_udp_connection source_connection;
 static void data_receiver(struct simple_udp_connection *c,
                           const uip_ipaddr_t *sender_addr,
                           uint16_t sender_port,
@@ -74,90 +42,75 @@ static void data_receiver(struct simple_udp_connection *c,
                           const uint8_t *data,
                           uint16_t datalen)
 {
-    printf("received data at AGGR: %s\n", (char *)data);
+    if(strncmp((char *)data, "B", 1) == 0) {
+        LOG_INFO("Sending IP \n");
+        simple_udp_sendto(&source_connection, data, datalen, sender_addr);
+    } else {
+        // Remove colons from IP so it can be used as a valid filename
+        char temp_name[UIPLIB_IPV6_MAX_STR_LEN];
+        uiplib_ipaddr_snprint(temp_name, sizeof(temp_name), sender_addr);
 
-    // Remove colons from IP so it can be used as a valid filename
-    char temp_name[UIPLIB_IPV6_MAX_STR_LEN];
-    uiplib_ipaddr_snprint(temp_name, sizeof(temp_name), sender_addr);
-
-    bool nameExists = false;
-    int index_of_name = -1;
-    int i;
-    for (i = 0; i < MAX_NUMBER_SOURCES; i++)
-    {
-        if (strcmp(names[i], remove_colon(temp_name)) == 0)
+        bool nameExists = false;
+        int index_of_name = -1;
+        int i;
+        for (i = 0; i < MAX_NUMBER_SOURCES; i++)
         {
-            nameExists = true;
-            index_of_name = i;
-            break;
+            if (strcmp(names[i], trim(temp_name, ':')) == 0)
+            {
+                nameExists = true;
+                index_of_name = i;
+                break;
+            }
         }
-    }
 
-    if (!nameExists)
-    {
-        snprintf(names[next_free_name], sizeof(temp_name), "%s" ,remove_colon(temp_name));
-        index_of_name = next_free_name;
-        next_free_name++;
-    }
-
-    int fd = cfs_open(names[index_of_name], CFS_WRITE | CFS_APPEND);
-    if (fd < 0)
-    {
-        printf("Error opening file \n");
-    }
-    else
-    {
-        int e = cfs_write(fd, data, datalen);
-        if (e < 0)
+        if (!nameExists)
         {
-            printf("Error writing to file \n");
+            snprintf(names[next_free_name], sizeof(temp_name), "%s", trim(temp_name, ':'));
+            index_of_name = next_free_name;
+            next_free_name++;
         }
-    }
 
-    cfs_close(fd);
+        int fd = cfs_open(names[index_of_name], CFS_WRITE | CFS_APPEND);
+        if (fd < 0)
+        {
+            LOG_ERR("ERROR: Error opening file \n");
+        }
+        else
+        {
+            int e = cfs_write(fd, data, datalen);
+            if (e < 0)
+            {
+                LOG_ERR("ERROR: Error writing to file \n");
+            }
+        }
+
+        cfs_close(fd);
+    }
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(aggregator, ev, data)
 {
     static struct etimer readFileTimer;
     static char buf[BUFFER_SIZE];
-    static uint8_t values[BUFFER_SIZE];
+    static double values[BUFFER_SIZE];
     static int i, j, u, rfd, bytesRead;
     static int acc_temp = 0, n_temp = 0;
+    static int acc_hum = 0, n_hum = 0;
     static char *token;
-    static char transmit_buffer[32];
-    static int err = 1; 
+    static char transmit_buffer[BUFFER_SIZE];
 
     PROCESS_BEGIN();
 
-    err = simple_udp_register(&event_connection, AGGR_EVENT_PORT, NULL, SOURCE_EVENT_PORT, event_receiver);
-    if(err == 0) {
-        LOG_ERR("ERROR: Could not etablish event connection \n");
-    } 
-
-    err = simple_udp_register(&broadcast_connection, AGGR_BROADCAST_PORT, NULL, SOURCE_BROADCAST_PORT, broadcast_receiver);
-    if(err == 0) {
-        LOG_ERR("ERROR: Could not etablish broadcast connection \n");
-    }
-
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-
-    err = simple_udp_register(&root_event_connection, AGGR_ROOTEVENT_PORT, NULL, ROOT_EVENT_PORT, NULL);
-    if(err == 0) {
-        LOG_ERR("ERROR: Could not etablish root event connection \n");
-    }
-
-    err = simple_udp_register(&data_connection, AGGR_DATA_PORT, NULL, SOURCE_DATA_PORT, data_receiver);
+    int err = simple_udp_register(&source_connection, AGGR_PORT, NULL, SOURCE_PORT, data_receiver);
     if(err == 0) {
         LOG_ERR("ERROR: Could not etablish data connection \n");
     }
-
-    err = simple_udp_register(&root_connection, AGGR_ROOTDATA_PORT, NULL, ROOT_DATA_PORT, NULL);
+    
+    err = simple_udp_register(&root_connection, AGGR_PORT, NULL, ROOT_PORT, NULL);
     if(err == 0) {
         LOG_ERR("ERROR: Could not etablish root connection \n");
     }
-    
-    
+
     etimer_set(&readFileTimer, CLOCK_SECOND * TIME_BETWEEN_AGGREGATION);
 
     while (1)
@@ -168,14 +121,14 @@ PROCESS_THREAD(aggregator, ev, data)
             rfd = cfs_open(names[i], CFS_READ);
             if (rfd < 0)
             {
-                printf("ERROR: Opnening file with name: %s\n", names[i]);
+                LOG_ERR("ERROR: Opnening file with name: %s\n", names[i]);
             }
             else
             {
                 bytesRead = cfs_read(rfd, buf, BUFFER_SIZE);
                 if (bytesRead < 0)
                 {
-                    printf("ERROR: Reading file with name: %s\n", names[i]);
+                    LOG_ERR("ERROR: Reading file with name: %s\n", names[i]);
                 }
             }
             cfs_close(rfd);
@@ -191,32 +144,43 @@ PROCESS_THREAD(aggregator, ev, data)
                 }
 
                 token = strtok(NULL, ",");
-                values[j] = simple_atoi(token);
+                values[j] = (int)simple_atof(token);
             }
 
-            // values will properly contain "raw" values, so everyother element would for instance be temp.
-            for (u = 0; u <= j; u++)
+            // skip first value because it is the type: event (E) or data (D)
+            for (u = 1; u <= j; u++)
             {
-                acc_temp += values[u];
-                n_temp++;
+                if(u % 2 == 0) {
+                    acc_hum += values[u];
+                    n_hum++;
+                } else {
+                    acc_temp += values[u];
+                    n_temp++;
+                }
             }
         }
+        
+        LOG_INFO("Acc_Temp: %d, N_Temp: %d, Acc_Hum: %d, N_Hum: %d \n", acc_temp, n_temp, acc_hum, n_hum);
 
-        if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip))
+        if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip) && n_hum != 0 && n_temp != 0)
         {
-            snprintf(transmit_buffer, 32, "%d", acc_temp / n_temp);
-            printf("transmit to root. Data: %s \n", transmit_buffer);
-            simple_udp_sendto(&root_connection, transmit_buffer, 32, &root_ip);
-        }
+            snprintf(transmit_buffer, sizeof(transmit_buffer), "%d,%d", acc_temp / n_temp, acc_hum / n_hum);
+            LOG_INFO("transmit to root. Data: %s \n", transmit_buffer);
+            simple_udp_sendto(&root_connection, transmit_buffer, strlen(transmit_buffer), &root_ip);
 
-        // acc_temp = 0;
-        // n_temp = 0;
-        // int q;
-        // for(q = 0; q < next_free_name; q++) {
-        //     memset(names[q], 0, 20);
-        //     cfs_remove(names[q]);
-        // }
-        // next_free_name = 0;
+            acc_temp = 0; 
+            n_temp = 0;
+            acc_hum = 0;
+            n_hum = 0;
+            int q;
+            for(q = 0; q < next_free_name; q++) {
+                cfs_remove(names[q]);
+                memset(names[q], 0, 20);
+            }
+            next_free_name = 0;
+        } else {
+            LOG_ERR("ERROR: Root not reachable or n-values equal 0 \n");
+        }
 
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&readFileTimer));
         etimer_reset(&readFileTimer);
