@@ -74,4 +74,4 @@ float simple_atof(const char* s){
     };
   };
   return rez * fact;
-};
+}

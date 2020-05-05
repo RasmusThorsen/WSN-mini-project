@@ -8,3 +8,4 @@
 #define MAX_NUMBER_AGGREGATORS 5
 #define TEMP_TRESHOLD 10
 
+

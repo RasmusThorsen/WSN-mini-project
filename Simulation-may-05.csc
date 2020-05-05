@@ -23,10 +23,10 @@
     <motetype>
       org.contikios.cooja.mspmote.SkyMoteType
       <identifier>sky1</identifier>
-      <description>Root</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/Alexander-Test/root/border-router.c</source>
-      <commands EXPORT="discard">make border-router.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/Alexander-Test/root/border-router.sky</firmware>
+      <description>Root (Sky)</description>
+      <source EXPORT="discard">[CONTIKI_DIR]/WSN-mini-project/root/root.c</source>
+      <commands EXPORT="discard">make root.sky TARGET=sky</commands>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/WSN-mini-project/root/root.sky</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -47,9 +47,9 @@
       org.contikios.cooja.mspmote.Z1MoteType
       <identifier>z11</identifier>
       <description>Aggregator (Z1)</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/Alexander-Test/aggregator/aggregator.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/WSN-mini-project/aggregator/aggregator.c</source>
       <commands EXPORT="discard">make aggregator.z1 TARGET=z1</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/Alexander-Test/aggregator/aggregator.z1</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/WSN-mini-project/aggregator/aggregator.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -67,9 +67,9 @@
       org.contikios.cooja.mspmote.Z1MoteType
       <identifier>z12</identifier>
       <description>Source (Z1)</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/Alexander-Test/source/source.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/WSN-mini-project/source/source.c</source>
       <commands EXPORT="discard">make source.z1 TARGET=z1</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/Alexander-Test/source/source.z1</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/WSN-mini-project/source/source.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -86,10 +86,10 @@
     <motetype>
       org.contikios.cooja.mspmote.SkyMoteType
       <identifier>sky2</identifier>
-      <description>WebServer</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/Alexander-Test/webserver/webserver.c</source>
+      <description>WebServer (Sky)</description>
+      <source EXPORT="discard">[CONTIKI_DIR]/WSN-mini-project/webserver/webserver.c</source>
       <commands EXPORT="discard">make webserver.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/Alexander-Test/webserver/webserver.sky</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/WSN-mini-project/webserver/webserver.sky</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -110,9 +110,9 @@
       org.contikios.cooja.mspmote.Z1MoteType
       <identifier>z13</identifier>
       <description>Processor (Z1)</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/Alexander-Test/processer/processor.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/WSN-mini-project/processer/processor.c</source>
       <commands EXPORT="discard">make processor.z1 TARGET=z1</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/Alexander-Test/processer/processor.z1</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/WSN-mini-project/processer/processor.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -130,8 +130,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>93.82392118607908</x>
-        <y>62.858088130286696</y>
+        <x>42.420817373749955</x>
+        <y>53.27559782868193</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -148,8 +148,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>54.61180887342416</x>
-        <y>70.53641399323625</y>
+        <x>-1.9775252748498904</x>
+        <y>55.99444566801525</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -166,8 +166,26 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>138.43078361489682</x>
-        <y>50.125954723025366</y>
+        <x>-46.3005947890838</x>
+        <y>60.17162873296806</y>
+        <z>0.0</z>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspClock
+        <deviation>1.0</deviation>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>3</id>
+      </interface_config>
+      <motetype_identifier>z12</motetype_identifier>
+    </mote>
+    <mote>
+      <breakpoints />
+      <interface_config>
+        org.contikios.cooja.interfaces.Position
+        <x>62.082547029297984</x>
+        <y>14.59274596595548</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -184,8 +202,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>140.70708277492466</x>
-        <y>70.81969859339044</y>
+        <x>72.72874242495959</x>
+        <y>25.23510731348715</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -197,24 +215,6 @@
         <id>5</id>
       </interface_config>
       <motetype_identifier>z13</motetype_identifier>
-    </mote>
-    <mote>
-      <breakpoints />
-      <interface_config>
-        org.contikios.cooja.interfaces.Position
-        <x>7.9195133978190455</x>
-        <y>74.04088180213613</y>
-        <z>0.0</z>
-      </interface_config>
-      <interface_config>
-        org.contikios.cooja.mspmote.interfaces.MspClock
-        <deviation>1.0</deviation>
-      </interface_config>
-      <interface_config>
-        org.contikios.cooja.mspmote.interfaces.MspMoteID
-        <id>6</id>
-      </interface_config>
-      <motetype_identifier>z12</motetype_identifier>
     </mote>
   </simulation>
   <plugin>
@@ -234,7 +234,7 @@
       <skin>org.contikios.cooja.plugins.skins.TrafficVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.UDGMVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.MoteTypeVisualizerSkin</skin>
-      <viewport>1.9757625271250188 0.0 0.0 1.9757625271250188 -7.023632738459033 96.28085764852176</viewport>
+      <viewport>1.5694674751373527 0.0 0.0 1.5694674751373527 171.5112029657397 188.61533860211821</viewport>
     </plugin_config>
     <width>400</width>
     <z>3</z>
@@ -246,14 +246,13 @@
     org.contikios.cooja.plugins.LogListener
     <plugin_config>
       <filter />
-      <formatted_time />
       <coloring />
     </plugin_config>
-    <width>835</width>
-    <z>1</z>
-    <height>590</height>
-    <location_x>3</location_x>
-    <location_y>396</location_y>
+    <width>866</width>
+    <z>2</z>
+    <height>395</height>
+    <location_x>5</location_x>
+    <location_y>408</location_y>
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.TimeLine
@@ -268,7 +267,7 @@
       <showLEDs />
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
-    <width>840</width>
+    <width>872</width>
     <z>5</z>
     <height>166</height>
     <location_x>0</location_x>
@@ -280,7 +279,7 @@
       <notes>Enter notes here</notes>
       <decorations>true</decorations>
     </plugin_config>
-    <width>160</width>
+    <width>192</width>
     <z>4</z>
     <height>160</height>
     <location_x>680</location_x>
@@ -294,10 +293,10 @@
       <bound>true</bound>
     </plugin_config>
     <width>362</width>
-    <z>2</z>
+    <z>1</z>
     <height>116</height>
-    <location_x>30</location_x>
-    <location_y>961</location_y>
+    <location_x>422</location_x>
+    <location_y>169</location_y>
   </plugin>
 </simconf>
 
