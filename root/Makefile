@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = border-router
+CONTIKI_PROJECT = root
 all: $(CONTIKI_PROJECT)
 
 MODULES += ../shared/defs.h ../shared/utility.h  
