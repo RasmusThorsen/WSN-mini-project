@@ -24,8 +24,6 @@
 static uip_ipaddr_t root_ip;
 static struct simple_udp_connection root_connection;
 
-static int data_recevied = 0;
-
 static char names[MAX_NUMBER_SOURCES][20];
 static int next_free_name = 0;
 
@@ -50,7 +48,6 @@ static void data_receiver(struct simple_udp_connection *c,
         // Remove colons from IP so it can be used as a valid filename
         char temp_name[UIPLIB_IPV6_MAX_STR_LEN];
         uiplib_ipaddr_snprint(temp_name, sizeof(temp_name), sender_addr);
-        data_recevied++;
         bool nameExists = false;
         int index_of_name = -1;
         int i;
@@ -162,7 +159,7 @@ PROCESS_THREAD(aggregator, ev, data)
             }
         }
         // LOG_INFO("Acc_Temp: %d, N_Temp: %d, Acc_Hum: %d, N_Hum: %d \n", acc_temp, n_temp, acc_hum, n_hum);
-        LOG_INFO("Data recevied: %d \n", data_recevied);
+        // LOG_INFO("Data recevied: %d \n", data_recevied);
         if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip) && n_hum != 0 && n_temp != 0)
         {
             snprintf(transmit_buffer, sizeof(transmit_buffer), "%d,%d", (int)acc_temp / n_temp, (int)acc_hum / n_hum);

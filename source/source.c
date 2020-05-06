@@ -18,12 +18,10 @@ static uip_ipaddr_t root_ip;
 static struct simple_udp_connection sender_connection;
 static struct simple_udp_connection root_connection;
 
-static int events_send = 0;
-
 PROCESS(source, "source");
-PROCESS(printenergy, "printenergy");
+// PROCESS(printenergy, "printenergy");
 
-AUTOSTART_PROCESSES(&source, &printenergy);
+AUTOSTART_PROCESSES(&source);
 /*---------------------------------------------------------------------------*/
 // Called when receiving Aggregator IP
 // static struct simple_udp_connection broadcast_connection;
@@ -58,8 +56,6 @@ PROCESS_THREAD(source, ev, data)
     static int status_code_temp = 0;
     static int status_code_humid = 0;
     static char buffer[32];
-
-    static int counter = 0;
 
     PROCESS_BEGIN();
 
@@ -96,8 +92,8 @@ PROCESS_THREAD(source, ev, data)
         etimer_reset(&broadcast_timer);
     }
 
-    etimer_set(&send_timer, CLOCK_SECOND * (30 + (random_rand() % 30));
-    while (counter < 10)
+    etimer_set(&send_timer, CLOCK_SECOND * 60);
+    while (1)
     {
         status_code_temp = read_temperature(&temp);
         status_code_humid = read_humidity(&humid);
@@ -108,7 +104,6 @@ PROCESS_THREAD(source, ev, data)
             if (temp.intergerValue > TEMP_TRESHOLD)
             {
                 if(NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip)) {
-                    events_send++;
                     snprintf(buffer, sizeof(buffer), "%d,%d", temp.intergerValue, humid.intergerValue);
                     simple_udp_sendto(&root_connection, buffer, strlen(buffer), &root_ip);
                 } else {
@@ -118,7 +113,6 @@ PROCESS_THREAD(source, ev, data)
             snprintf(buffer, sizeof(buffer), "D,%d.%02d,%d.%02d", temp.intergerValue, temp.decimal, humid.intergerValue, humid.decimal);
             simple_udp_sendto(&sender_connection, buffer, strlen(buffer), &aggregator_ip);
         }
-        counter++;
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
         etimer_reset(&send_timer);
     }
@@ -128,19 +122,19 @@ PROCESS_THREAD(source, ev, data)
 
 // Remember #include "contiki.h"
 // Global static functions can be declared outside scope of process
-PROCESS_THREAD(printenergy, ev, data)
-{
-    static struct etimer print_timer;
+// PROCESS_THREAD(printenergy, ev, data)
+// {
+//     static struct etimer print_timer;
 
-    PROCESS_BEGIN();
-    etimer_set(&print_timer, CLOCK_SECOND * 60); 
+//     PROCESS_BEGIN();
+//     etimer_set(&print_timer, CLOCK_SECOND * 60); 
 
-    while(1) {
-        // energest_report();
-        LOG_INFO("Events sent: %d \n", events_send);
-        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&print_timer));
-        etimer_reset(&print_timer);
-    } 
+//     while(1) {
+//         // energest_report();
+//         LOG_INFO("Events sent: %d \n", events_send);
+//         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&print_timer));
+//         etimer_reset(&print_timer);
+//     } 
 
-    PROCESS_END();
-}
+//     PROCESS_END();
+// }
