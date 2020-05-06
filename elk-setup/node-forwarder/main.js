@@ -47,7 +47,7 @@ var interval = setInterval(() => {
     console.log(`StdError: ${stderr}`);
   }
   })
-}, 10000);
+}, 30000);
 
 server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);

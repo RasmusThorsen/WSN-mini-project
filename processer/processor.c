@@ -134,7 +134,7 @@ static void webserver_handler(
         LOG_INFO("ACK before clear data \n names: %s\n", names[next_item_to_ship]);
 
         strtok(names[next_item_to_ship], ",");
-        strcat(names[next_item_to_ship], ",");
+        strcat(names[next_item_to_ship], ",");            
         LOG_INFO("ACK clear data \n names: %s\n", names[next_item_to_ship]);
 
         next_item_to_ship++;

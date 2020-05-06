@@ -51,25 +51,6 @@
 static int received_event = 0;
 
 /*---------------------------------------------------------------------------*/
-PROCESS(root, "root");
-PROCESS(printenergy, "printenergy");
-AUTOSTART_PROCESSES(&root, &printenergy);
-/*---------------------------------------------------------------------------*/
-char* trim(char* input, char trim)
-{
-    int i,j;
-    char *output=input;
-    for (i = 0, j = 0; i<strlen(input); i++,j++)
-    {
-        if (input[i]!=(int)trim)
-            output[j]=input[i];
-        else
-            j--;
-    }
-    output[j]=0;
-    return output;
-}
-
 static struct simple_udp_connection processor_conn;
 static uip_ipaddr_t processor_ip;
 static bool ipFlag = false;
@@ -141,7 +122,8 @@ static void event_receiver(
 /* Declare and auto-start this file's process */
 PROCESS(contiki_ng_br, "Contiki-NG Border Router");
 PROCESS(root, "Root");
-AUTOSTART_PROCESSES(&contiki_ng_br, &root);
+PROCESS(printenergy, "printenergy");
+AUTOSTART_PROCESSES(&contiki_ng_br, &root, &printenergy);
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(contiki_ng_br, ev, data)
@@ -160,7 +142,6 @@ PROCESS_THREAD(root, ev, data)
 
   PROCESS_BEGIN();
   /* Initialize DAG root (This should now be started though RPL)*/
-  // NETSTACK_ROUTING.root_start();
 
   /* Initialize UDP connection */
   int err = simple_udp_register(&processor_conn, ROOT_PORT, NULL, PROCESSOR_PORT, processor_receiver);
