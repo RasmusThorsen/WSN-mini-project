@@ -31,6 +31,8 @@
 # Contiki
 *.sky
 *.cooja
+*.z1
+*/build/*
 
 # Executables
 *.exe
