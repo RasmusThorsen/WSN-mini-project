@@ -1,0 +1,2 @@
+#define ENERGEST_CONF_ON 1
+#define UIP_CONF_MAX_ROUTES 30

@@ -31,8 +31,15 @@ static float humidity[] = {36.13, 37.85, 38.05, 38.02, 37.85, 37.88, 38.02, 37.7
                             40.64, 41.04, 41.71, 42.32, 42.99, 43.02, 42.25, 42.45, 42.58, 43.29, 43.35, 43.85, 44.18, 44.52, 
                             44.91, 45.04, 45.04, 44.71, 44.52, 44.58, 44.91, 44.71, 44.52, 44.65, 44.52, 44.52, 45.01, 44.78, 
                             44.91, 45.18};
+
 static int temp_index = 0;
 static int humid_index = 0;
+
+// Cannot directly initialze with non-constant values
+void init_sensors() {
+    temp_index = (random_rand() % 100);
+    humid_index = (random_rand() % 100);
+}
 
 int read_temperature(struct Sensor *temp)
 {

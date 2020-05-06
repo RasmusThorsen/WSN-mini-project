@@ -10,7 +10,6 @@
 #include "net/ipv6/uiplib.h"
 
 #include "os/storage/cfs/cfs.h"
-#include "os/lib/heapmem.h"
 
 #include "sys/log.h"
 #define LOG_MODULE "Aggregator"
@@ -20,10 +19,12 @@
 #include "../shared/utility.h"
 
 #define BUFFER_SIZE 200
-#define TIME_BETWEEN_AGGREGATION 10
+#define TIME_BETWEEN_AGGREGATION 200
 
 static uip_ipaddr_t root_ip;
 static struct simple_udp_connection root_connection;
+
+static int data_recevied = 0;
 
 static char names[MAX_NUMBER_SOURCES][20];
 static int next_free_name = 0;
@@ -49,7 +50,7 @@ static void data_receiver(struct simple_udp_connection *c,
         // Remove colons from IP so it can be used as a valid filename
         char temp_name[UIPLIB_IPV6_MAX_STR_LEN];
         uiplib_ipaddr_snprint(temp_name, sizeof(temp_name), sender_addr);
-
+        data_recevied++;
         bool nameExists = false;
         int index_of_name = -1;
         int i;
@@ -73,14 +74,14 @@ static void data_receiver(struct simple_udp_connection *c,
         int fd = cfs_open(names[index_of_name], CFS_WRITE | CFS_APPEND);
         if (fd < 0)
         {
-            LOG_ERR("ERROR: Error opening file \n");
+            LOG_ERR("ERROR: Error opening file with name: %s \n", names[index_of_name]);
         }
         else
         {
             int e = cfs_write(fd, data, datalen);
             if (e < 0)
             {
-                LOG_ERR("ERROR: Error writing to file \n");
+                LOG_ERR("ERROR: Error writing to file with name: %s \n", names[index_of_name]);
             }
         }
 
@@ -97,7 +98,7 @@ PROCESS_THREAD(aggregator, ev, data)
     static int acc_temp = 0, n_temp = 0;
     static int acc_hum = 0, n_hum = 0;
     static char *token;
-    static char transmit_buffer[BUFFER_SIZE];
+    static char transmit_buffer[20];
 
     PROCESS_BEGIN();
 
@@ -115,6 +116,7 @@ PROCESS_THREAD(aggregator, ev, data)
 
     while (1)
     {
+        LOG_INFO("Aggregating \n");
         j = 0;
         for (i = 0; i < next_free_name; i++)
         {
@@ -159,13 +161,11 @@ PROCESS_THREAD(aggregator, ev, data)
                 }
             }
         }
-        
-        LOG_INFO("Acc_Temp: %d, N_Temp: %d, Acc_Hum: %d, N_Hum: %d \n", acc_temp, n_temp, acc_hum, n_hum);
-
+        // LOG_INFO("Acc_Temp: %d, N_Temp: %d, Acc_Hum: %d, N_Hum: %d \n", acc_temp, n_temp, acc_hum, n_hum);
+        LOG_INFO("Data recevied: %d \n", data_recevied);
         if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip) && n_hum != 0 && n_temp != 0)
         {
-            snprintf(transmit_buffer, sizeof(transmit_buffer), "%d,%d", acc_temp / n_temp, acc_hum / n_hum);
-            LOG_INFO("transmit to root. Data: %s \n", transmit_buffer);
+            snprintf(transmit_buffer, sizeof(transmit_buffer), "%d,%d", (int)acc_temp / n_temp, (int)acc_hum / n_hum);
             simple_udp_sendto(&root_connection, transmit_buffer, strlen(transmit_buffer), &root_ip);
 
             acc_temp = 0; 
@@ -179,9 +179,8 @@ PROCESS_THREAD(aggregator, ev, data)
             }
             next_free_name = 0;
         } else {
-            LOG_ERR("ERROR: Root not reachable or n-values equal 0 \n");
+            LOG_ERR("ERROR: Root not reachable or n-values equal 0: N Values are: %d and %d \n", n_temp, n_hum);
         }
-
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&readFileTimer));
         etimer_reset(&readFileTimer);
     }
