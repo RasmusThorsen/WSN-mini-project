@@ -43,9 +43,6 @@ AUTOSTART_PROCESSES(&processor);
 // static struct simple_udp_connection broadcast_connection;
 static struct simple_udp_connection udp_conn;
 static struct simple_udp_connection webserver_conn;
-
-// static uip_ipaddr_t webserver_ip;
-// static bool ipFlag = false;
 static void data_receiver(
     struct simple_udp_connection *c,
     const uip_ipaddr_t *sender_addr,
@@ -112,6 +109,7 @@ static void data_receiver(
     }
 }
 
+static uint8_t next_item_to_ship = 0;
 static void webserver_handler(
     struct simple_udp_connection *c,
     const uip_ipaddr_t *sender_addr,
@@ -127,17 +125,21 @@ static void webserver_handler(
     }
     else if(strncmp((char*)data, "D",1) == 0)
     {
-        LOG_INFO("WEBSERVER SENT A REQUEST\n names: %s\n", names[0]);
-        simple_udp_sendto(&webserver_conn, names[0], sizeof(names[0]), sender_addr);
-        LOG_INFO("After sent names: %.*s\n", sizeof(names[0]),names[0]);
+        LOG_INFO("WEBSERVER SENT A REQUEST\n names: %s\n", names[next_item_to_ship]);
+        simple_udp_sendto(&webserver_conn, names[next_item_to_ship], sizeof(names[next_item_to_ship]), sender_addr);
+        LOG_INFO("After sent names: %.*s\n", sizeof(names[next_item_to_ship]),names[next_item_to_ship]);
     }
     else if(strncmp((char*)data, "A",1) == 0)
     {
-        LOG_INFO("ACK before clear data \n names: %s\n", names[0]);
+        LOG_INFO("ACK before clear data \n names: %s\n", names[next_item_to_ship]);
 
-        strtok(names[0], ",");
-        strcat(names[0], ",");
-        LOG_INFO("ACK clear data \n names: %s\n", names[0]);
+        strtok(names[next_item_to_ship], ",");
+        strcat(names[next_item_to_ship], ",");
+        LOG_INFO("ACK clear data \n names: %s\n", names[next_item_to_ship]);
+
+        next_item_to_ship++;
+        if(next_item_to_ship >= next_free_name)
+            next_item_to_ship = 0;
     }
 }
 
