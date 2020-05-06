@@ -2,6 +2,8 @@ const http = require('http')
       axios = require('axios'),
       exec = require('child_process').exec;
 
+const IP = process.env.DNS || `http://[aaaa::212:7402:2:202]/`
+
 const hostname = '0.0.0.0';
 const port = 3000;
 
@@ -11,56 +13,34 @@ const server = http.createServer((req, res) => {
   res.end('Hello World');
 });
 
-// var interval = setInterval(() => {
-//   axios.get('http://[aaaa::212:7402:2:202]/', { headers: { 'User-Agent': 'axios', 'Accept': '*/*' } })
-//     .then(response => {
-//       console.log('Data from motes: ', response.data)
-//       axios.post('https://logstash.alexanderrasmussen.dk', response.data)
-//         .then(response => {
-//           console.log("Logstash response: ", response.data);
-//         });
-//     }).catch(error => {
-//       console.log(error);
-//     })
-// }, 10000);
-
-// let optionsMote = {
-//   host: '[aaaa::212:7402:2:202]',
-//   hostname: 'aaaa::212:7402:2:202',
-//   port: 80,
-//   path: '/',
-//   method: 'GET',
-//   headers: {
-//     'Accept': '*/*',
-//     'User-Agent': 'node'
-//   }
-// }
-
-// var interval = setInterval(() => {
-//   const req = http.request(optionsMote, res => {
-//     console.log(`statusCode: ${res}`)
-
-//     res.on('data', d => {
-//       console.log(`Data. ${d}`)
-//     })
-//   })
-
-//   req.on('error', error => {
-//     console.error(error)
-//   })
-
-//   req.end()
-// }, 10000);
-
 var interval = setInterval(() => {
-  exec('curl -H "User-Agent: curl" -H "Accept: */*" http://[aaaa::212:7402:2:202]/', (err, stdout, stderr) => {
+  exec(`curl -H "User-Agent: curl" -H "Accept: */*" ${IP}`, (err, stdout, stderr) => {
   if(stdout.trim()) 
   {
     console.log(`Data: ${stdout}`);
-    axios.post('https://logstash.alexanderrasmussen.dk', stdout)
-      .then(response => {
-        console.log("Logstash response: ", response.data);
-      });
+    var moteIP = stdout.substring(0,stdout.indexOf(','));
+    var tokens = stdout.substring(stdout.indexOf(',')+1).split(';');
+
+    tokens.forEach(token => 
+      {
+        if (token == "")
+        {
+          console.log("break");
+          
+        }
+        else 
+        {
+          var postData = moteIP + ',' + token;
+          console.log(`PostData: ${postData}`);
+          axios.post('https://logstash.alexanderrasmussen.dk', postData)
+          .then(response => {
+            console.log("Logstash response: ", response.data);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+        }
+      });    
   }
   else {
     console.log(`Error: ${err}`);
