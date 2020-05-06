@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  *
  */
+#define ENERGEST_CONF_ON 1
 
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_

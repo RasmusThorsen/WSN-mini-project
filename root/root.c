@@ -41,13 +41,20 @@
 #include "net/ipv6/uiplib.h"
 
 #include "../shared/defs.h"
-// #include "../shared/utility.h"
+#include "../shared/utility.h"
 
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "RPL BR"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
+static int received_event = 0;
+
+/*---------------------------------------------------------------------------*/
+PROCESS(root, "root");
+PROCESS(printenergy, "printenergy");
+AUTOSTART_PROCESSES(&root, &printenergy);
+/*---------------------------------------------------------------------------*/
 char* trim(char* input, char trim)
 {
     int i,j;
@@ -125,6 +132,7 @@ static void event_receiver(
     const uint8_t *data,
     uint16_t datalen)
 {
+    received_event++;
     LOG_INFO("Root Received EVENT '%.*s' from ", datalen, (char *)data);
     LOG_INFO_6ADDR(sender_addr);
     LOG_INFO_("\n");
@@ -184,8 +192,23 @@ PROCESS_THREAD(root, ev, data)
         etimer_reset(&broadcast_timer);
     }
 
-  LOG_INFO("Root: Done initialzation \n");
-
-
-  PROCESS_END();
+    PROCESS_END();
 }
+
+PROCESS_THREAD(printenergy, ev, data)
+{
+    static struct etimer print_timer;
+
+    PROCESS_BEGIN();
+    etimer_set(&print_timer, CLOCK_SECOND * 60); 
+
+    while(1) {
+        // energest_report();
+        LOG_INFO("Received events: %d \n", received_event);
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&print_timer));
+        etimer_reset(&print_timer);
+    } 
+
+    PROCESS_END();
+}
+
