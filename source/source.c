@@ -2,6 +2,7 @@
 #include "net/ipv6/simple-udp.h"
 #include "net/routing/routing.h"
 #include "net/netstack.h"
+#include "dev/radio.h"
 #include "sys/energest.h"
 #include "sensor.h"
 #include "lib/random.h"
@@ -17,11 +18,11 @@
 static uip_ipaddr_t root_ip;
 static struct simple_udp_connection sender_connection;
 static struct simple_udp_connection root_connection;
-
+static int events = 0;
 PROCESS(source, "source");
-// PROCESS(printenergy, "printenergy");
+PROCESS(printenergy, "printenergy");
 
-AUTOSTART_PROCESSES(&source);
+AUTOSTART_PROCESSES(&source, &printenergy);
 /*---------------------------------------------------------------------------*/
 // Called when receiving Aggregator IP
 // static struct simple_udp_connection broadcast_connection;
@@ -56,6 +57,8 @@ PROCESS_THREAD(source, ev, data)
     static int status_code_temp = 0;
     static int status_code_humid = 0;
     static char buffer[32];
+
+    static int counter = 0;
 
     PROCESS_BEGIN();
 
@@ -92,17 +95,22 @@ PROCESS_THREAD(source, ev, data)
         etimer_reset(&broadcast_timer);
     }
 
-    etimer_set(&send_timer, CLOCK_SECOND * 60);
-    while (1)
+    etimer_set(&send_timer, CLOCK_SECOND * 0.6);
+    while (counter <= 100)
     {
+        counter++;
+
         status_code_temp = read_temperature(&temp);
         status_code_humid = read_humidity(&humid);
 
         if (status_code_temp == 0 && status_code_humid == 0)
         {
             // LOG_INFO("Data: %d.%02d,%d.%02d \n", temp.intergerValue, temp.decimal, humid.intergerValue, humid.decimal);
-            if (temp.intergerValue > TEMP_TRESHOLD)
+            NETSTACK_RADIO.on();
+            // if (temp.intergerValue > TEMP_TRESHOLD)
+            if (counter % 10 == 0)
             {
+                events++;
                 if(NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ip)) {
                     snprintf(buffer, sizeof(buffer), "%d,%d", temp.intergerValue, humid.intergerValue);
                     simple_udp_sendto(&root_connection, buffer, strlen(buffer), &root_ip);
@@ -112,9 +120,10 @@ PROCESS_THREAD(source, ev, data)
             }
             snprintf(buffer, sizeof(buffer), "D,%d.%02d,%d.%02d", temp.intergerValue, temp.decimal, humid.intergerValue, humid.decimal);
             simple_udp_sendto(&sender_connection, buffer, strlen(buffer), &aggregator_ip);
+            NETSTACK_RADIO.off();
+            PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
+            etimer_reset(&send_timer);
         }
-        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
-        etimer_reset(&send_timer);
     }
 
     PROCESS_END();
