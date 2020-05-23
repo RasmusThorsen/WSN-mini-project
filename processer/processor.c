@@ -69,43 +69,49 @@ static void data_receiver(
 
         for (i = 0; i<strlen(input); i++)
         {
-            if (input[i]!=(int)',') {
+            if ((input[i]>='0' && input[i]<='9') || (input[i]>='a' && input[i]<='f')) {
                 ip_of_mote[i]=input[i];
             }
             else
                 break;
         }
+        
 
-        bool fileExists = false;
+        bool elementExists = false;
         int index_of_name = -1;
-
-        for(i = 0; i < MAX_NUMBER_AGGREGATORS; i++)
+        uint8_t j;
+        if(ip_of_mote[0] == 'a' && ip_of_mote[1] == 'a' && ip_of_mote[2] == 'a' && ip_of_mote[3] == 'a')
         {
-            if(strncmp(names[i], ip_of_mote, strlen(ip_of_mote)) == 0)
+            for(j = 0; j < MAX_NUMBER_AGGREGATORS; j++)
             {
-                fileExists = true;
-                index_of_name = i;
-                LOG_INFO("MATCH! \n");
-                break;
+                if(strncmp(names[j], ip_of_mote, i) == 0)
+                {
+                    elementExists = true;
+                    index_of_name = j;
+                    LOG_INFO("MATCH! \n");
+                    break;
+                }
             }
+
+            if (!elementExists)
+            {
+                LOG_INFO("File didn't exist - data received '%.*s'\n", datalen, (char *)data);
+
+                snprintf(buffer, sizeof(ip_of_mote), "%s;", data);
+                index_of_name = next_free_name;
+                strcat(names[index_of_name], buffer);
+                next_free_name++;
+            }
+            else
+            {
+                snprintf(buffer, sizeof(ip_of_mote), "%s;", removeIp((char *)data));
+                strcat(names[index_of_name], buffer);
+            }
+        } else {
+            LOG_INFO("IP_OF_MOTE %s \n", ip_of_mote);
         }
 
-        if (!fileExists)
-        {
-            LOG_INFO("Processor2 Received Data '%.*s' from \n", datalen, (char *)data);
-
-            snprintf(buffer, sizeof(ip_of_mote), "%s;", data);
-            index_of_name = next_free_name;
-            strcat(names[index_of_name], buffer);
-            next_free_name++;
-        }
-        else
-        {
-            snprintf(buffer, sizeof(ip_of_mote), "%s;", removeIp((char *)data));
-            strcat(names[index_of_name], buffer);
-        }
-
-        LOG_INFO("\n DATA: %s \n", names[index_of_name]);
+        LOG_INFO("DATA: %s \n", names[index_of_name]);
     }
 }
 
@@ -125,17 +131,24 @@ static void webserver_handler(
     }
     else if(strncmp((char*)data, "D",1) == 0)
     {
-        LOG_INFO("WEBSERVER SENT A REQUEST\n names: %s\n", names[next_item_to_ship]);
+        LOG_INFO("WEBSERVER SENT A REQUEST - names: %s\n", names[next_item_to_ship]);
         simple_udp_sendto(&webserver_conn, names[next_item_to_ship], sizeof(names[next_item_to_ship]), sender_addr);
-        LOG_INFO("After sent names: %.*s\n", sizeof(names[next_item_to_ship]),names[next_item_to_ship]);
+        // LOG_INFO("After sent names: %.*s\n", sizeof(names[next_item_to_ship]),names[next_item_to_ship]);
     }
     else if(strncmp((char*)data, "A",1) == 0)
     {
-        LOG_INFO("ACK before clear data \n names: %s\n", names[next_item_to_ship]);
-
-        strtok(names[next_item_to_ship], ",");
-        strcat(names[next_item_to_ship], ",");            
-        LOG_INFO("ACK clear data \n names: %s\n", names[next_item_to_ship]);
+        LOG_INFO("ACK before clear data - names: %s\n", names[next_item_to_ship]);
+        if(names[next_item_to_ship][0] == 'a')
+        {
+            strtok(names[next_item_to_ship], ",");
+            strcat(names[next_item_to_ship], ",");            
+        }
+        else
+        {
+            LOG_INFO("names = %s", names[next_item_to_ship]);
+        }
+        
+        // LOG_INFO("ACK clear data \n names: %s\n", names[next_item_to_ship]);
 
         next_item_to_ship++;
         if(next_item_to_ship >= next_free_name)

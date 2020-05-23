@@ -13,7 +13,10 @@ const server = http.createServer((req, res) => {
   res.end('Hello World');
 });
 
-var interval = setInterval(() => {
+var initTimer = 210000
+
+setTimeout(() => setInterval(() => {
+  console.log("Sending request to webserver");
   exec(`curl -H "User-Agent: curl" -H "Accept: */*" ${IP}`, (err, stdout, stderr) => {
   if(stdout.trim()) 
   {
@@ -47,7 +50,7 @@ var interval = setInterval(() => {
     console.log(`StdError: ${stderr}`);
   }
   })
-}, 30000);
+}, 60000), 210000);
 
 server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
