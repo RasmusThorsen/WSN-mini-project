@@ -19,7 +19,7 @@
 #include "../shared/utility.h"
 
 #define BUFFER_SIZE 200
-#define TIME_BETWEEN_AGGREGATION 200
+#define TIME_BETWEEN_AGGREGATION 500
 
 static uip_ipaddr_t root_ip;
 static struct simple_udp_connection root_connection;
